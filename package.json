@@ -1,0 +1,45 @@
+{
+  "name": "ptero-bulk-apikey",
+  "version": "1.0.0",
+  "description": "Bulk-mint ptero.pro identities (no signup, no captcha) and serve deepseek-v4.1-flash through a local OpenAI-compatible shim — 9Router connector.",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "ptero-bulk": "src/cli.js"
+  },
+  "main": "src/lib/ptero.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "mint": "node src/cli.js mint",
+    "shim": "node src/cli.js shim",
+    "connect-9router": "node src/connect-9router.js",
+    "probe": "node src/cli.js probe"
+  },
+  "optionalDependencies": {
+    "undici": "^6.21.0"
+  },
+  "keywords": [
+    "ptero",
+    "9router",
+    "deepseek",
+    "api-keys",
+    "bulk",
+    "openai-compatible",
+    "llm",
+    "no-signup",
+    "proxy",
+    "nodejs"
+  ],
+  "files": [
+    "src",
+    "docs",
+    "examples",
+    "i18n",
+    "brand",
+    "README.md",
+    "LICENSE"
+  ]
+}

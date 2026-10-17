@@ -1,0 +1,23 @@
+# dependencies (undici is optional — only needed for proxied egress exits)
+node_modules/
+
+# generated identity pools (these are credentials, however anonymous)
+identities.txt
+identities-*.txt
+*.keys.txt
+
+# generated results
+outputs/
+*.json
+!package.json
+
+# env
+.env
+.env.*
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/

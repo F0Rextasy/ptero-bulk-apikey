@@ -1,0 +1,52 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ptero-bulk logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#111C33"/>
+    </linearGradient>
+    <linearGradient id="wing" x1="72" y1="120" x2="440" y2="330" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5B9DFF"/>
+      <stop offset="0.5" stop-color="#7C6CFF"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="bead" x1="170" y1="330" x2="350" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3DDC97"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="24" y="24" width="464" height="464" rx="92" stroke="url(#wing)" stroke-opacity="0.25" stroke-width="2"/>
+
+  <!-- flight arc: the exits, spread over separate egress IPs -->
+  <path d="M74 386C132 262 214 216 256 216s124 46 182 170"
+        stroke="url(#wing)" stroke-width="10" stroke-linecap="round" fill="none" stroke-opacity="0.85"/>
+
+  <!-- wings: ptero -->
+  <path d="M236 300c-58-6-104-34-134-82 52 6 100 22 138 52-2 10-3 20-4 30z"
+        fill="url(#wing)" filter="url(#glow)"/>
+  <path d="M276 300c58-6 104-34 134-82-52 6-100 22-138 52 2 10 3 20 4 30z"
+        fill="url(#wing)" filter="url(#glow)"/>
+  <path d="M248 244c-30-2-56-14-76-34 30 4 56 14 78 30l-2 4z" fill="#7C6CFF" fill-opacity="0.75"/>
+  <path d="M264 244c30-2 56-14 76-34-30 4-56 14-78 30l2 4z" fill="#22D3EE" fill-opacity="0.75"/>
+
+  <!-- identity token: 32 hex chars, generated not registered -->
+  <g transform="translate(168 344)">
+    <rect x="0" y="0" width="176" height="76" rx="24" fill="url(#bead)"/>
+    <g fill="#06121B" fill-opacity="0.85">
+      <rect x="24" y="26" width="52" height="10" rx="5"/>
+      <rect x="24" y="44" width="34" height="10" rx="5"/>
+      <rect x="96" y="26" width="56" height="10" rx="5"/>
+      <rect x="96" y="44" width="40" height="10" rx="5"/>
+    </g>
+  </g>
+
+  <!-- nonce tick: scraped, never hardcoded -->
+  <circle cx="256" cy="452" r="10" fill="#3DDC97"/>
+  <circle cx="300" cy="452" r="10" fill="#22D3EE"/>
+  <circle cx="344" cy="452" r="10" fill="#7C6CFF"/>
+</svg>
