@@ -37,13 +37,13 @@
 git clone https://github.com/F0Rextasy/ptero-bulk-apikey
 cd ptero-bulk-apikey
 
-# 1. 50 Identitäten erzeugen (jede mit einem echten deepseek-v4.1-flash-Aufruf verifiziert)
+# 1. mint 50 identities (each verified with a real deepseek-v4.1-flash call)
 node src/cli.js mint --count 50 --conc 8
 
-# 2. als OpenAI bereitstellen
+# 2. serve them as OpenAI
 node src/cli.js shim --pool identities.txt --port 8791
 
-# 3. den Pool in eine laufende 9Router-Instanz registrieren
+# 3. register the pool into a running 9Router
 node src/cli.js connect --n 16
 ```
 
@@ -59,12 +59,12 @@ curl http://localhost:20128/v1/chat/completions \
 ## 🛠 Verwendung
 
 ```bash
-ptero-bulk mint --count 250 --conc 16       # Bulk-Erzeugung + Verifikation nach identities.txt
-ptero-bulk shim --pool identities.txt       # OpenAI-kompatibles /v1 auf :8791
-ptero-bulk connect --n 16                  # in 9Router registrieren (eine Verbindung pro Identität)
-ptero-bulk probe --n 5 --gap 3000           # End-to-End-Aufrufe durch 9Router
-ptero-bulk status                          # Upstream-/status + /usage einer frischen Identität
-ptero-bulk limit --k 12                    # beweist: die Drosselung sitzt am Exit, nicht an der Identität
+ptero-bulk mint --count 250 --conc 16       # bulk mint + verify into identities.txt
+ptero-bulk shim --pool identities.txt       # OpenAI-compatible /v1 on :8791
+ptero-bulk connect --n 16                  # register into 9Router (one connection per identity)
+ptero-bulk probe --n 5 --gap 3000           # end-to-end calls through 9Router
+ptero-bulk status                          # upstream /status + a fresh identity's /usage
+ptero-bulk limit --k 12                    # prove the throttle is per exit, not per identity
 ```
 
 | Flag | Beschreibung | Standard |
@@ -103,7 +103,7 @@ PTERO_EXITS=direct,http://127.0.0.1:40000,http://proxy-b:8080 PTERO_EXIT_GAP=260
 9Router ist ein selbst gehosteter, OpenAI-kompatibler Router:
 
 ```bash
-npm install -g 9router && 9router        # Dashboard auf http://localhost:20128
+npm install -g 9router && 9router        # dashboard on http://localhost:20128
 ```
 
 ptero spricht kein einfaches HTTP-Chat, deshalb richtet der Konnektor den `openai-compatible`-Node von 9Router auf den Shim dieses Repos aus und hängt **eine Verbindung pro Pool-Identität** an — das `Authorization: Bearer <32-hex>` jeder Verbindung lässt den Shim exakt auf diese Identität routen:
@@ -150,14 +150,14 @@ Der Katalog steht fest im Website-Bundle von ptero (upstream gibt es keine `/mod
 const { Ptero } = require('ptero-bulk-apikey/src/lib/ptero.js');
 const { mintIdentities, VerifiedPool } = require('ptero-bulk-apikey/src/lib/pool.js');
 
-// eine Identität, ein Chat — ganz ohne Pool
+// one identity, one chat — no pool needed
 const client = new Ptero();
 const { text, meta } = await client.chat('Reply with the single word: ok', {
   model: 'deepseek-v4.1-flash:free',
 });
 console.log(text, meta.model_used);
 
-// oder ein verifizierter Pool mit Failover
+// or a verified pool with failover
 await mintIdentities({ count: 10, conc: 4, outFile: 'identities.txt' });
 const pool = new VerifiedPool('identities.txt');
 const out = await pool.chat({ message: 'hi', model: 'deepseek-v4.1-flash:free' });
@@ -195,21 +195,21 @@ Das exakte Drahtformat steht in [`docs/PROTOCOL.md`](../docs/PROTOCOL.md).
 ```
 ptero-bulk-apikey/
 ├── brand/                 logo.svg · icon.svg
-├── docs/PROTOCOL.md       Drahtformat von ptero.pro, Schritt für Schritt
+├── docs/PROTOCOL.md       ptero.pro wire format, step by step
 ├── examples/              mint-and-chat.js · shim-and-router.js
 ├── i18n/                  README in id · zh · ja · es · de
 ├── src/
 │   ├── cli.js             mint · shim · connect · probe · status · limit
-│   ├── shim.js            OpenAI-kompatibles /v1 über einen verifizierten Pool
-│   ├── launcher.js        PTERO-ASCII-Banner
-│   ├── connect-9router.js Provider-Node + eine Verbindung pro Identität
+│   ├── shim.js            OpenAI-compatible /v1 over a verified pool
+│   ├── launcher.js        PTERO ASCII banner
+│   ├── connect-9router.js provider-node + one connection per identity
 │   └── lib/
-│       ├── ptero.js       Client: Nonce-Abgriff, SSE-Chat-Stream
-│       ├── identity.js    32-Hex-Identitätserzeugung + Round-Robin-Pool
-│       ├── pool.js        verifiziertes Minten + Failover-Pool
-│       ├── exits.js       Exit-Reservierung, Pacing, 429-Strafen
-│       ├── tools.js       Text-Tool-Call-Block ⇄ echte tool_calls
-│       └── models.js      Katalog + Alias-Auflösung
+│       ├── ptero.js       client: nonce scrape, SSE chat-stream
+│       ├── identity.js    32-hex identity minting + round-robin pool
+│       ├── pool.js        verified mint + failover pool
+│       ├── exits.js       egress-exit reservation, pacing, 429 penalties
+│       ├── tools.js       text tool-call block ⇄ real tool_calls
+│       └── models.js      catalogue + alias resolution
 └── package.json
 ```
 
