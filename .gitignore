@@ -21,3 +21,8 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
+
+# credential files — never committed (scanner gate: literal names)
+keys.txt
+accounts.json
+proxies.txt

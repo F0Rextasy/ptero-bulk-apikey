@@ -32,9 +32,10 @@ async function mintIdentities({
   outFile = DEFAULT_POOL_FILE,
   model = resolveModel(null),
   verify = VERIFY_PROMPT,
+  exits,
   log = () => {},
 } = {}) {
-  const targets = Array.from({ length: count }, () => new Ptero());
+  const targets = Array.from({ length: count }, () => new Ptero({ exits }));
   const started = Date.now();
   const results = new Array(count);
   let cursor = 0;
@@ -82,12 +83,7 @@ async function mintIdentities({
 
 /** Read a pool file: one identity per line, anything that is not a token is dropped. */
 function readPool(file = DEFAULT_POOL_FILE) {
-  if (!file || !fs.existsSync(file)) return [];
-  return fs
-    .readFileSync(file, 'utf8')
-    .split(/\r?\n/)
-    .map((line) => line.trim().split(/[\s,]+/)[0])
-    .filter((t) => /^[0-9a-f]{32}$/i.test(t));
+  return new IdentityPool().loadFile(file).members;
 }
 
 /** Merge new identities into the pool file, keeping it de-duplicated and LF-terminated. */
@@ -105,8 +101,9 @@ function writePool(file, identities) {
  * one-connection-per-key model meaningful. With no bearer, the pool round-robins.
  */
 class VerifiedPool {
-  constructor(file = DEFAULT_POOL_FILE) {
+  constructor(file = DEFAULT_POOL_FILE, exits) {
     this.file = file;
+    this.exits = exits;
     this.identities = new IdentityPool(readPool(file));
   }
 
@@ -128,7 +125,7 @@ class VerifiedPool {
 
     let lastError;
     for (const identity of candidates) {
-      const client = new Ptero(identity ? { token: identity } : {});
+      const client = new Ptero(identity ? { token: identity, exits: this.exits } : { exits: this.exits });
       try {
         let text = '';
         let meta = {};

@@ -31,7 +31,9 @@ async function login(base, password) {
     headers: { 'Content-Type': 'application/json', 'User-Agent': UA },
     body: JSON.stringify({ password: password ?? '123456' }),
   });
-  const setCookies = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : [];
+  const setCookies = typeof res.headers.getSetCookie === 'function'
+    ? res.headers.getSetCookie()
+    : [res.headers.get('set-cookie')].filter(Boolean);
   const cookie = setCookies.map((c) => c.split(';')[0]).join('; ');
   return { ok: res.ok, cookie, body: (await res.text()).slice(0, 200) };
 }
@@ -96,8 +98,8 @@ async function sync({ base = 'http://localhost:20128', password = '123456', shim
   const { cookie, ok, body } = await login(base, password);
   if (!ok && !/already|success|ok/i.test(body)) throw new Error(`9Router login failed: ${body}`);
 
-  const { node } = await ensureProviderNode(base, cookie, { name, prefix, baseUrl: shimUrl });
-  log(`  node ${node && node.id ? 'ready' : 'created'}: ${name} (${prefix})`);
+  const { node, created } = await ensureProviderNode(base, cookie, { name, prefix, baseUrl: shimUrl });
+  log(`  node ${created ? 'created' : 'ready'}: ${name} (${prefix})`);
 
   const list = await apiCall(base, cookie, '/api/providers');
   const all = (list.json && list.json.connections) || [];
@@ -181,7 +183,6 @@ if (require.main === module) {
     const i = process.argv.indexOf(`--${name}`);
     return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : fallback;
   };
-  const fs = require('fs');
   const { readPool } = require('./lib/pool.js');
   const base = process.env.N9ROUTER || arg('router', 'http://127.0.0.1:20128');
   sync({
@@ -193,7 +194,7 @@ if (require.main === module) {
     dry: process.argv.includes('--dry'),
   })
     .then((r) => {
-      if (r.clientKey) console.log(`client key: sk-<${r.clientKey.length} chars>   models: ${r.models.join(', ') || '(none)'}`);
+      if (r.clientKey) console.log(`client key: ${r.clientKey}   models: ${r.models.join(', ') || '(none)'}`);
     })
     .catch((e) => { console.error('FATAL:', e.message); process.exit(1); });
 }

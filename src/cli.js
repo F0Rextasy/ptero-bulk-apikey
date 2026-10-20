@@ -63,6 +63,8 @@ Mint
   --conc <n>           verifications in flight (the exit pool paces the rate)   default 5
   --pool <file>        pool file, one identity per line           default identities.txt
   --model <id>         model the verification call uses          default deepseek-v4.1-flash:free
+  --exits <list>       egress exits: direct,http://h:p,…          default $PTERO_EXITS or "direct"
+  --gap <ms>           minimum gap per exit                       default 2600
 
 Shim
   --port <n>           listen port                                default 8791
@@ -104,7 +106,7 @@ async function main() {
 
   switch (command) {
     case 'mint':
-      return cmdMint(args, poolFile);
+      return cmdMint(args, poolFile, exits);
     case 'shim':
       return cmdShim(args, poolFile, exits);
     case 'connect':
@@ -112,9 +114,9 @@ async function main() {
     case 'probe':
       return cmdProbe(args);
     case 'status':
-      return cmdStatus(poolFile);
+      return cmdStatus(poolFile, exits);
     case 'limit':
-      return cmdLimit(args);
+      return cmdLimit(args, exits);
     default:
       console.error(`unknown command: ${command}`);
       console.log(HELP);
@@ -122,14 +124,14 @@ async function main() {
   }
 }
 
-async function cmdMint(args, poolFile) {
+async function cmdMint(args, poolFile, exits) {
   showBanner();
   const count = Number(args.count || 10);
   const conc = Number(args.conc || 5);
   const model = resolveModel(String(args.model || ''));
-  console.log(`[mint] ${count} identity/identities · conc=${conc} · model=${model} · exits=${exitsSummary()}`);
-  const r = await mintIdentities({ count, conc, outFile: poolFile, model, log: console.log });
-  const perMin = r.verified.length / (r.seconds / 60);
+  console.log(`[mint] ${count} identity/identities · conc=${conc} · model=${model} · exits=${exitsSummary(exits)}`);
+  const r = await mintIdentities({ count, conc, outFile: poolFile, model, exits, log: console.log });
+  const perMin = r.seconds > 0 ? r.verified.length / (r.seconds / 60) : 0;
   console.log(`[mint] done: ${r.verified.length}/${r.total} verified in ${r.seconds.toFixed(1)}s` +
     ` (${perMin.toFixed(1)} identities/min, ${Math.round(perMin * 60)}/hour)`);
   console.log(`[mint] pool: ${r.fileSize} verified identities in ${r.file}`);
@@ -164,8 +166,9 @@ async function cmdConnect(args, poolFile) {
     dry: Boolean(args.dry),
   });
   if (r.clientKey) {
-    console.log(`[connect] endpoint ${r.baseUrl}   client key sk-<${r.clientKey.length} chars>`);
+    console.log(`[connect] endpoint ${r.baseUrl}   client key ${r.clientKey}`);
     console.log(`[connect] models: ${r.models.join(', ') || '(none)'}`);
+    console.log('[connect] set N9ROUTER_KEY to that key to run: ptero-bulk probe --n 5');
   }
 }
 
@@ -196,8 +199,8 @@ async function cmdProbe(args) {
   console.log(`[probe] ${ok}/${n} ok   p50=${q(0.5)}ms p90=${q(0.9)}ms max=${sorted[sorted.length - 1] || 0}ms`);
 }
 
-async function cmdStatus(poolFile) {
-  const client = new Ptero();
+async function cmdStatus(poolFile, exits) {
+  const client = new Ptero({ exits });
   const status = await client.status();
   const usage = await client.usage();
   console.log('[status] upstream /status:', JSON.stringify(status));
@@ -206,10 +209,10 @@ async function cmdStatus(poolFile) {
   console.log('[status] catalogue:', MODELS.join(', '));
 }
 
-async function cmdLimit(args) {
+async function cmdLimit(args, exits) {
   const k = Number(args.k || 12);
   const gap = Number(args.gap || 2700);
-  const client = new Ptero({ token: newIdentity() });
+  const client = new Ptero({ token: newIdentity(), exits });
   const before = await client.usage();
   let ok = 0;
   let charged = 0;
@@ -228,8 +231,8 @@ async function cmdLimit(args) {
   console.log('[limit] what throttles you is the egress IP, not the identity — add exits, not identities.');
 }
 
-function exitsSummary() {
-  const list = createExits({}).list.filter((e) => e.usable);
+function exitsSummary(exits) {
+  const list = (exits || createExits({})).list.filter((e) => e.usable);
   return `${list.length} (${list.map((e) => e.url).join(', ')})`;
 }
 

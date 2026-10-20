@@ -67,19 +67,6 @@ class IdentityPool {
     return this;
   }
 
-  /** Next healthy identity, or `null` when every member is cooling down. */
-  next() {
-    const now = Date.now();
-    for (let i = 0; i < this.members.length; i++) {
-      const id = this.members[(this.cursor + i) % this.members.length];
-      if ((this.cooldown.get(id) || 0) < now) {
-        this.cursor = (this.cursor + i + 1) % this.members.length;
-        return id;
-      }
-    }
-    return null;
-  }
-
   /**
    * Every healthy identity in rotation order, starting at the cursor, advancing it by one.
    * Used to build a failover list without walking the cursor a full lap.

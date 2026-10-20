@@ -19,9 +19,9 @@
  *   3. empty pool → a throwaway identity is minted per request, so the shim still works before
  *      you have minted anything.
  *
- * Every response carries a `ptero` block with the model that actually answered
+ * Every blocking response carries a `ptero` block with the model that actually answered
  * (`model_used`), the conversation id, the latency and the identity prefix — so a request
- * through a router can be traced end to end.
+ * through a router can be traced end to end. Streaming responses carry `choices` deltas only.
  */
 
 const http = require('http');
@@ -56,16 +56,14 @@ function readBody(req) {
   });
 }
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' };
-
 /**
  * Start the shim.
  * @param {{port?: number, host?: string, poolFile?: string, exits?: object}} [opts]
  * @returns {Promise<{server: import('http').Server, pool: VerifiedPool, url: string}>}
  */
 function startShim({ port = DEFAULT_PORT, host = DEFAULT_HOST, poolFile, exits } = {}) {
-  const pool = new VerifiedPool(poolFile);
   const exitPool = exits || sharedExits();
+  const pool = new VerifiedPool(poolFile, exitPool);
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
@@ -74,14 +72,9 @@ function startShim({ port = DEFAULT_PORT, host = DEFAULT_HOST, poolFile, exits }
     const route = url.pathname.replace(/^\/v1(?=\/|$)/, '') || '/';
 
     const json = (code, body) => {
-      res.writeHead(code, { 'Content-Type': 'application/json', ...CORS });
+      res.writeHead(code, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(body));
     };
-
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204, CORS);
-      return res.end();
-    }
 
     if (route === '/health') {
       return json(200, {
@@ -149,7 +142,6 @@ async function respond(req, res, pool, payload, json) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
-      ...CORS,
     });
     const chunk = (delta, finish) =>
       res.write(
