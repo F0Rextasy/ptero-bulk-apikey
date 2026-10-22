@@ -18,6 +18,7 @@
 [![License](https://img.shields.io/badge/license-MIT-6ea8fe?style=for-the-badge)](LICENSE)
 [![Models](https://img.shields.io/badge/models-5%20served-412991?style=for-the-badge)](https://ptero.pro)
 [![9Router](https://img.shields.io/badge/9Router-connector-8B5CF6?style=for-the-badge)](#-connect-to-9router)
+[![OmniRoute](https://img.shields.io/badge/OmniRoute-connector-8B5CF6?style=for-the-badge)](#-connect-to-omniroute)
 [![X](https://img.shields.io/badge/X-%40bigbullapp-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/bigbullapp)
 
 [🛠 Quick start](#-quick-start) · [🎁 Free tier](#-free-tier--how-much-you-get) · [🤖 Models](#-models--all-5-of-them) · [🧪 Use the API](#-how-to-use-the-api) · [✅ Verified](#-verified-working--every-key-is-tested) · [🧭 How it works](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [⚙️ Options](#️-cli-options) · [🛰️ Proxies](#️-behind-a-proxy) · [🐞 Issues](#-issues)
@@ -104,6 +105,12 @@ node src/cli.js connect --n 16
 
 `identities.txt` holds one 32-hex identity per line, and only identities that answered a real chat call are written to it.
 
+
+# 3) register the pool into a running OmniRoute
+node src/cli.js connect --n 16
+```
+
+`identities.txt` holds one 32-hex identity per line, and only identities that answered a real chat call are written to it.
 ### 🖱️ The launcher
 
 There is no interactive menu here — the CLI is the interface and every task is one command (`mint`, `shim`, `connect`, `probe`, `status`, `limit`). `node src/cli.js` with no task prints the PTERO banner and the task list, and every flag also has an environment variable (`PTERO_EXITS`, `PTERO_EXIT_GAP`, `PTERO_BASE`, `PTERO_HOME`, `PORT`, `N9ROUTER`, `N9ROUTER_PW`, `N9ROUTER_KEY`).

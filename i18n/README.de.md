@@ -65,6 +65,19 @@ curl http://localhost:20128/v1/chat/completions \
   -d '{"model":"ptero/deepseek-v4.1-flash:free","messages":[{"role":"user","content":"hi"}]}'
 ```
 
+
+# 3. register the pool into a running OmniRoute
+node src/cli.js connect --n 16
+```
+
+Danach wie jeder OpenAI-Endpunkt aufrufen:
+
+```bash
+curl http://localhost:20128/v1/chat/completions \
+  -H "Authorization: Bearer sk-<omniroute key>" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"ptero/deepseek-v4.1-flash:free","messages":[{"role":"user","content":"hi"}]}'
+```
 ## 🛠 Verwendung
 
 ```bash
