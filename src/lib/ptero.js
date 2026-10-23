@@ -26,6 +26,13 @@ const crypto = require('crypto');
 const { sharedExits } = require('./exits.js');
 const { DEFAULT_MODEL } = require('./models.js');
 const { newIdentity, newUsername, isGuestToken } = require('./identity.js');
+// Node >=22's global fetch bundles its own undici and rejects a v6 `ProxyAgent`
+// ("invalid onRequestStart method"), so prefer the installed undici's fetch when present.
+let doFetch = globalThis.fetch;
+try {
+  const undici = require('undici');
+  if (typeof undici.fetch === 'function') doFetch = undici.fetch;
+} catch {}
 
 const BASE = process.env.PTERO_BASE || 'https://ptero.pro/wp-json/mlp/v1';
 const HOME = process.env.PTERO_HOME || 'https://ptero.pro/';
@@ -42,9 +49,14 @@ const NONONCE_TTL_MS = 30 * 60_000;
  * Scrape the WordPress nonce from the homepage.
  * @param {boolean} [force] ignore the cache (used after a 403)
  */
-async function fetchNonce(force = false) {
+async function fetchNonce(force = false, exits) {
   if (!force && cachedNonce && Date.now() - nonceAt < NONONCE_TTL_MS) return cachedNonce;
-  const res = await fetch(HOME, { headers: { 'User-Agent': UA, Accept: 'text/html' } });
+  let exit = null;
+  if (exits) { try { exit = await exits.acquire(); } catch {} }
+  // The homepage is Cloudflare-cached with the nonce baked in; a stale one 403s
+  // ("Cookie check failed"), so bust the cache on every scrape.
+  const url = HOME + (HOME.includes('?') ? '&' : '?') + 'cb=' + Date.now();
+  const res = await doFetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html', 'Cache-Control': 'no-cache' }, dispatcher: exit && exit.dispatcher });
   const html = await res.text();
   const m = html.match(/var\s+nonce\s*=\s*"([0-9a-z]{6,16})"/i);
   if (!m) throw new Error('ptero nonce not found in the homepage HTML');
@@ -92,7 +104,7 @@ class Ptero {
    * A 429 penalises only that exit and the call moves on; a 403 re-scrapes the nonce once.
    */
   async request(path, opts = {}) {
-    if (!this.nonce) this.nonce = await fetchNonce();
+    if (!this.nonce) this.nonce = await fetchNonce(false, this.exits);
     const { _retried, ...rest } = opts;
     const attempts = Math.max(2, this.exits.list.filter((e) => e.usable).length * 2);
     let lastStatus = 0;
@@ -101,7 +113,7 @@ class Ptero {
     for (let attempt = 0; attempt < attempts; attempt++) {
       const exit = await this.exits.acquire();
       try {
-        const res = await fetch(BASE + path, {
+        const res = await doFetch(BASE + path, {
           ...rest,
           headers: this.headers(rest.headers),
           dispatcher: exit && exit.dispatcher,
@@ -116,7 +128,7 @@ class Ptero {
           continue;
         }
         if (res.status === 403 && !_retried) {
-          this.nonce = await fetchNonce(true);
+          this.nonce = await fetchNonce(true, this.exits);
           return this.request(path, { ...opts, _retried: true });
         }
         return res;
