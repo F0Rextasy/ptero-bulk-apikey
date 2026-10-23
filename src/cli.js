@@ -16,6 +16,7 @@
  */
 
 const fs = require('fs');
+const path = require('path');
 const { showBanner } = require('./launcher.js');
 const { startShim } = require('./shim.js');
 const { mintIdentities, readPool } = require('./lib/pool.js');
@@ -65,6 +66,7 @@ Mint
   --model <id>         model the verification call uses          default deepseek-v4.1-flash:free
   --exits <list>       egress exits: direct,http://h:p,…          default $PTERO_EXITS or "direct"
   --gap <ms>           minimum gap per exit                       default 2600
+  (a refused identity — 401/403, ban or quota — is listed in keys-dead.txt beside the pool)
 
 Shim
   --port <n>           listen port                                default 8791
@@ -90,10 +92,27 @@ Examples
   ptero-bulk limit --k 12
 `;
 
+/** `npm run mint` passes --auto with no subcommand: a mint-ish flag alone means `mint`. */
+const MINT_FLAGS = ['auto', 'count', 'conc', 'pool', 'model', 'exits', 'gap'];
+
+/** Dead-identity report beside the pool: only definite rejections (401/403, ban or
+ *  quota wording) — a timeout or a 5xx says nothing about the identity. */
+const DEAD_STATUS = new Set([401, 403]);
+const DEAD_REASON = /banned|deactivated|disabled|suspended|quota|insufficient|forbidden|unauthorized/i;
+function recordDead(poolFile, identity, status, sample) {
+  if (!identity) return;
+  if (!DEAD_STATUS.has(Number(status)) && !DEAD_REASON.test(String(sample || ''))) return;
+  const target = path.join(path.dirname(path.resolve(poolFile)), 'keys-dead.txt');
+  const why = `${status}${sample ? ' ' + String(sample).replace(/\s+/g, ' ').slice(0, 60) : ''}`;
+  try {
+    fs.appendFileSync(target, `${identity}\t${why}\t${new Date().toISOString()}\n`);
+  } catch (e) { /* diagnostics must never break the run */ }
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const args = parseArgs(argv);
-  const command = args._[0];
+  const command = args._[0] || (args.dry === undefined && MINT_FLAGS.some((k) => args[k] !== undefined) ? 'mint' : null);
 
   if (!command || args.help || command === 'help') {
     showBanner();
@@ -131,6 +150,7 @@ async function cmdMint(args, poolFile, exits) {
   const model = resolveModel(String(args.model || ''));
   console.log(`[mint] ${count} identity/identities · conc=${conc} · model=${model} · exits=${exitsSummary(exits)}`);
   const r = await mintIdentities({ count, conc, outFile: poolFile, model, exits, log: console.log });
+  for (const f of r.failed) recordDead(poolFile, f.identity, f.status, f.error || f.sample);
   const perMin = r.seconds > 0 ? r.verified.length / (r.seconds / 60) : 0;
   console.log(`[mint] done: ${r.verified.length}/${r.total} verified in ${r.seconds.toFixed(1)}s` +
     ` (${perMin.toFixed(1)} identities/min, ${Math.round(perMin * 60)}/hour)`);

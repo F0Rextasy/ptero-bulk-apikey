@@ -70,9 +70,43 @@ function showCompact() {
 
 module.exports = { showBanner, showCompact, BANNER, WORDMARK, boxedBanner };
 
+/** `node src/cli.js <command> …` from the checkout root (the pool file lives here). */
+function cli(args) {
+  const r = spawnSync(process.execPath, [path.join(__dirname, 'cli.js'), ...args], { windowsHide: true, cwd: ROOT, stdio: 'inherit' });
+  if (r.status !== 0) console.log(`\n⚠ exited with code ${r.status}`);
+}
+
+/** The menu is the one-command path: pick 1, type a number, the rest is automatic. */
+async function menu() {
+  const readline = require('readline');
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const ask = (question, fallback) =>
+    new Promise((resolve) => rl.question(`  ${question} [${fallback}]: `, (answer) => resolve(String(answer).trim() || String(fallback))));
+  showBanner();
+  console.log('  1) Mint keys      — mint identities, verify each with a live chat call');
+  console.log('  2) Status         — upstream /status + this pool identity quota');
+  console.log('  3) Probe          — one diagnostic chat call through 9Router');
+  console.log('  4) Connect to 9Router — register the pool with a local 9Router');
+  console.log('  5) Connect to OmniRoute — register the pool with a local OmniRoute');
+  console.log('  q) Quit\n');
+  const choice = (await ask('Choose', '1')).toLowerCase();
+  if (choice === '1') {
+    const n = Math.max(1, parseInt(await ask('How many keys?', 10), 10) || 10);
+    rl.close();
+    return cli(['mint', '--auto', '--count', String(n)]);
+  }
+  rl.close();
+  if (choice === '2') return cli(['status']);
+  if (choice === '3') return cli(['probe']);
+  if (choice === '4') return connectRouter(ROUTERS[0], []);
+  if (choice === '5') return connectRouter(ROUTERS[1], []);
+  return undefined;
+}
+
 if (require.main === module) {
   const argv = process.argv.slice(2);
   const router = ROUTERS.find((r) => argv.includes(r.flag));
   if (router) connectRouter(router, argv.filter((a) => a !== router.flag));
-  else showBanner();
+  else if (argv.includes('--help') || argv.includes('-h')) console.log('Interactive launcher: run `node src/launcher.js` and pick a menu item.');
+  else menu().catch((e) => { console.error('[fatal]', e.message); process.exit(1); });
 }

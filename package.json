@@ -12,8 +12,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node src/cli.js",
-    "mint": "node src/cli.js mint",
+    "start": "node src/launcher.js",
+    "mint": "node src/cli.js --auto",
     "shim": "node src/cli.js shim",
     "connect-9router": "node src/connect-9router.js",
     "probe": "node src/cli.js probe"
