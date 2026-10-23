@@ -21,7 +21,13 @@
 [![OmniRoute](https://img.shields.io/badge/OmniRoute-connector-8B5CF6?style=for-the-badge)](#-connect-to-omniroute)
 [![X](https://img.shields.io/badge/X-%40bigbullapp-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/bigbullapp)
 
-[🛠 Quick start](#-quick-start) · [🎁 Free tier](#-free-tier--how-much-you-get) · [🤖 Models](#-models--all-5-of-them) · [🧪 Use the API](#-how-to-use-the-api) · [✅ Verified](#-verified-working--every-key-is-tested) · [🧭 How it works](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [⚙️ Options](#️-cli-options) · [🛰️ Proxies](#️-behind-a-proxy) · [🐞 Issues](#-issues)
+[🛠 Quick start](#-quick-start) · [🎁 Free tier](#-free-tier--how-much-you-get) · [🤖 Models](#-models--all-5-of-them) · [🧪 Use the API](#-how-to-use-the-api) · [✅ Verified](#-verified-working--every-key-is-tested) · [🧭 How it works](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [🔌 OmniRoute](#-connect-to-omniroute) · [⚙️ Options](#️-cli-options) · [🛰️ Proxies](#️-behind-a-proxy) · [🐞 Issues](#-issues)
+
+</div>
+
+<div align="center">
+
+**English** · [Türkçe](README.tr.md) · [中文](README.cn.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Русский](README.ru.md) · [Português](README.pt.md)
 
 </div>
 
@@ -105,7 +111,7 @@ node src/cli.js connect --n 16
 
 `identities.txt` holds one 32-hex identity per line, and only identities that answered a real chat call are written to it.
 
-
+```bash
 # 3) register the pool into a running OmniRoute
 node src/cli.js connect --n 16
 ```
@@ -114,6 +120,8 @@ node src/cli.js connect --n 16
 ### 🖱️ The launcher
 
 There is no interactive menu here — the CLI is the interface and every task is one command (`mint`, `shim`, `connect`, `probe`, `status`, `limit`). `node src/cli.js` with no task prints the PTERO banner and the task list, and every flag also has an environment variable (`PTERO_EXITS`, `PTERO_EXIT_GAP`, `PTERO_BASE`, `PTERO_HOME`, `PORT`, `N9ROUTER`, `N9ROUTER_PW`, `N9ROUTER_KEY`).
+
+The same launcher shortcut registers the pool without spelling out the connector: `node src/launcher.js --connect-9router …` hands the rest of the command line to `src/connect-9router.js` and `node src/launcher.js --connect-omniroute …` hands it to `src/connect-omniroute.js`; with neither flag it just prints the PTERO banner.
 
 ## ✅ Verified working — every key is tested
 
@@ -223,6 +231,31 @@ Models   : ptero/deepseek-v4.1-flash:free, ptero/ling-3.0-flash:free,
 ```bash
 curl http://localhost:20128/v1/chat/completions \
   -H "Authorization: Bearer sk-<9router key>" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"ptero/deepseek-v4.1-flash:free","messages":[{"role":"user","content":"hi"}],"stream":true}'
+```
+
+## 🔌 Connect to OmniRoute
+
+[OmniRoute](https://omniroute.online) is a self-hosted, OpenAI-compatible router (`npm install -g omniroute && omniroute`, dashboard on `http://localhost:20128`).
+
+ptero does not speak plain HTTP chat, so the connector points OmniRoute's `openai-compatible` node at this repo's **shim** and attaches **one connection per pool identity** — each connection's `Authorization: Bearer <32-hex>` makes the shim route it to that exact identity:
+
+```bash
+node src/connect-omniroute.js --shim http://127.0.0.1:8791/v1 --pool identities.txt --n 16
+# or: ptero-bulk connect --n 16
+```
+
+```
+Endpoint : http://localhost:20128/v1
+Models   : ptero/deepseek-v4.1-flash:free, ptero/ling-3.0-flash:free,
+           ptero/mistral-nemo:minirouter, ptero/qwen3.7-flash:minirouter,
+           ptero/apodex-1.1-mini:free
+```
+
+```bash
+curl http://localhost:20128/v1/chat/completions \
+  -H "Authorization: Bearer sk-<omniroute key>" \
   -H "Content-Type: application/json" \
   -d '{"model":"ptero/deepseek-v4.1-flash:free","messages":[{"role":"user","content":"hi"}],"stream":true}'
 ```

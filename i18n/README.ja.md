@@ -66,6 +66,7 @@ curl http://localhost:20128/v1/chat/completions \
 ```
 
 
+```bash
 # 3. register the pool into a running OmniRoute
 node src/cli.js connect --n 16
 ```
@@ -148,6 +149,39 @@ Models   : ptero/deepseek-v4.1-flash:free, ptero/ling-3.0-flash:free,
 ```bash
 curl http://localhost:20128/v1/chat/completions \
   -H "Authorization: Bearer sk-<9router key>" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"ptero/deepseek-v4.1-flash:free","messages":[{"role":"user","content":"hi"}],"stream":true}'
+```
+
+
+## 🔌 OmniRoute への接続
+
+OmniRoute はセルフホスト型の OpenAI 互換ルーターです:
+
+```bash
+npm install -g omniroute && omniroute        # dashboard on http://localhost:20128
+```
+
+ptero は素の HTTP チャットを話せないため、コネクタは OmniRoute の `openai-compatible` ノードをこのリポジトリの shim へ向けるとともに、**プール内の ID につき 1 接続**を割り当てます — 各接続の `Authorization: Bearer <32-hex>` によって、shim はその要求をまさにその ID へルーティングします:
+
+```
+node src/connect-omniroute.js --shim http://127.0.0.1:8791/v1 --pool identities.txt --n 16
+```
+
+次のように登録されます:
+
+```
+Endpoint : http://localhost:20128/v1
+Models   : ptero/deepseek-v4.1-flash:free, ptero/ling-3.0-flash:free,
+           ptero/mistral-nemo:minirouter, ptero/qwen3.7-flash:minirouter,
+           ptero/apodex-1.1-mini:free
+```
+
+任意の OpenAI 互換クライアントを向ければ、そのまま使えます:
+
+```bash
+curl http://localhost:20128/v1/chat/completions \
+  -H "Authorization: Bearer sk-<omniroute key>" \
   -H "Content-Type: application/json" \
   -d '{"model":"ptero/deepseek-v4.1-flash:free","messages":[{"role":"user","content":"hi"}],"stream":true}'
 ```

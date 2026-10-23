@@ -66,6 +66,7 @@ curl http://localhost:20128/v1/chat/completions \
 ```
 
 
+```bash
 # 3. register the pool into a running OmniRoute
 node src/cli.js connect --n 16
 ```
@@ -148,6 +149,39 @@ Richten Sie jeden OpenAI-kompatiblen Client darauf:
 ```bash
 curl http://localhost:20128/v1/chat/completions \
   -H "Authorization: Bearer sk-<9router key>" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"ptero/deepseek-v4.1-flash:free","messages":[{"role":"user","content":"hi"}],"stream":true}'
+```
+
+
+## 🔌 Mit OmniRoute verbinden
+
+OmniRoute ist ein selbst gehosteter, OpenAI-kompatibler Router:
+
+```bash
+npm install -g omniroute && omniroute        # dashboard on http://localhost:20128
+```
+
+ptero spricht kein einfaches HTTP-Chat, deshalb richtet der Konnektor den `openai-compatible`-Node von OmniRoute auf den Shim dieses Repos aus und hängt **eine Verbindung pro Pool-Identität** an — das `Authorization: Bearer <32-hex>` jeder Verbindung lässt den Shim exakt auf diese Identität routen:
+
+```
+node src/connect-omniroute.js --shim http://127.0.0.1:8791/v1 --pool identities.txt --n 16
+```
+
+Registriert wird:
+
+```
+Endpoint : http://localhost:20128/v1
+Models   : ptero/deepseek-v4.1-flash:free, ptero/ling-3.0-flash:free,
+           ptero/mistral-nemo:minirouter, ptero/qwen3.7-flash:minirouter,
+           ptero/apodex-1.1-mini:free
+```
+
+Richten Sie jeden OpenAI-kompatiblen Client darauf:
+
+```bash
+curl http://localhost:20128/v1/chat/completions \
+  -H "Authorization: Bearer sk-<omniroute key>" \
   -H "Content-Type: application/json" \
   -d '{"model":"ptero/deepseek-v4.1-flash:free","messages":[{"role":"user","content":"hi"}],"stream":true}'
 ```

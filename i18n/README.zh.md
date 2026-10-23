@@ -66,6 +66,7 @@ curl http://localhost:20128/v1/chat/completions \
 ```
 
 
+```bash
 # 3. register the pool into a running OmniRoute
 node src/cli.js connect --n 16
 ```
@@ -148,6 +149,39 @@ Models   : ptero/deepseek-v4.1-flash:free, ptero/ling-3.0-flash:free,
 ```bash
 curl http://localhost:20128/v1/chat/completions \
   -H "Authorization: Bearer sk-<9router key>" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"ptero/deepseek-v4.1-flash:free","messages":[{"role":"user","content":"hi"}],"stream":true}'
+```
+
+
+## 🔌 连接到 OmniRoute
+
+OmniRoute 是一个自托管、兼容 OpenAI 的路由器：
+
+```bash
+npm install -g omniroute && omniroute        # dashboard on http://localhost:20128
+```
+
+ptero 不使用普通的 HTTP 聊天协议，所以连接器把 OmniRoute 的 `openai-compatible` 节点指向本仓库的 shim，并为**池中每个身份挂一条连接** —— 每条连接的 `Authorization: Bearer <32-hex>` 都会让 shim 把它精确路由到那个身份：
+
+```
+node src/connect-omniroute.js --shim http://127.0.0.1:8791/v1 --pool identities.txt --n 16
+```
+
+这样会注册出：
+
+```
+Endpoint : http://localhost:20128/v1
+Models   : ptero/deepseek-v4.1-flash:free, ptero/ling-3.0-flash:free,
+           ptero/mistral-nemo:minirouter, ptero/qwen3.7-flash:minirouter,
+           ptero/apodex-1.1-mini:free
+```
+
+把任意兼容 OpenAI 的客户端指向它即可：
+
+```bash
+curl http://localhost:20128/v1/chat/completions \
+  -H "Authorization: Bearer sk-<omniroute key>" \
   -H "Content-Type: application/json" \
   -d '{"model":"ptero/deepseek-v4.1-flash:free","messages":[{"role":"user","content":"hi"}],"stream":true}'
 ```

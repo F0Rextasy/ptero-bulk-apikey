@@ -7,6 +7,27 @@
  * README.md (and every i18n/README.<lang>.md) — keep the two in sync.
  */
 
+const path = require('path');
+const { spawnSync } = require('child_process');
+
+const ROOT = path.resolve(__dirname, '..');
+
+/** The two router connectors this repository ships — one flag each, no menu to walk through. */
+const ROUTERS = [
+  { flag: '--connect-9router', file: 'connect-9router.js', label: 'Connect to 9Router' },
+  { flag: '--connect-omniroute', file: 'connect-omniroute.js', label: 'Connect to OmniRoute' },
+];
+
+/** `node src/launcher.js --connect-9router|--connect-omniroute <connector args>`. */
+function connectRouter(router, rest) {
+  console.log('  ' + router.label + ' — register the verified pool into a running router\n');
+  const r = spawnSync(process.execPath, [path.join(__dirname, router.file), ...rest], { windowsHide: true, cwd: ROOT, stdio: 'inherit' });
+  if (r.status !== 0) {
+    console.log('\n⚠ ' + router.label + ' exited with code ' + r.status);
+    process.exit(r.status || 1);
+  }
+}
+
 const WORDMARK = [
   '██████╗  ████████╗ ███████╗ ██████╗   ██████╗',
   '██╔══██╗ ╚══██╔══╝ ██╔════╝ ██╔══██╗ ██╔═══██╗',
@@ -50,5 +71,8 @@ function showCompact() {
 module.exports = { showBanner, showCompact, BANNER, WORDMARK, boxedBanner };
 
 if (require.main === module) {
-  showBanner();
+  const argv = process.argv.slice(2);
+  const router = ROUTERS.find((r) => argv.includes(r.flag));
+  if (router) connectRouter(router, argv.filter((a) => a !== router.flag));
+  else showBanner();
 }
